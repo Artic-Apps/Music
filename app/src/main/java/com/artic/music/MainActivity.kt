@@ -45,6 +45,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
@@ -147,6 +149,40 @@ object AudioEngine {
     var allSongsLibrary = mutableListOf<Song>() // For random suggestions
     var playbackSpeed by mutableStateOf(1.0f)
     var onStateChanged: ((Boolean) -> Unit)? = null
+
+    // Sleep Timer
+    var sleepTimerEndTime by mutableStateOf<Long?>(null)
+    var sleepTimerMinutesLeft by mutableStateOf(0)
+
+    fun setSleepTimer(minutes: Int) {
+        if (minutes > 0) {
+            sleepTimerEndTime = System.currentTimeMillis() + (minutes * 60 * 1000L)
+            sleepTimerMinutesLeft = minutes
+        } else {
+            sleepTimerEndTime = null
+            sleepTimerMinutesLeft = 0
+        }
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerEndTime = null
+        sleepTimerMinutesLeft = 0
+    }
+
+    fun checkSleepTimer(context: Context) {
+        sleepTimerEndTime?.let { endTime ->
+            val remaining = endTime - System.currentTimeMillis()
+            if (remaining <= 0) {
+                // Timer expired - pause playback
+                mediaPlayer?.pause()
+                isPlaying = false
+                startService(context, "PAUSE")
+                cancelSleepTimer()
+            } else {
+                sleepTimerMinutesLeft = (remaining / 60000).toInt() + 1
+            }
+        }
+    }
 
     fun play(context: Context, song: Song, newQueue: List<Song>? = null) {
         try {
@@ -451,6 +487,7 @@ fun MainContent() {
     LaunchedEffect(AudioEngine.isPlaying) {
         while(AudioEngine.isPlaying) {
             AudioEngine.currentPosition = AudioEngine.mediaPlayer?.currentPosition?.toLong() ?: 0L
+            AudioEngine.checkSleepTimer(context) // Check if sleep timer expired
             delay(1000)
             DataManager(context).addListeningTime(1000)
         }
@@ -1242,6 +1279,147 @@ fun SettingsScreen(onNavigateRecap: () -> Unit, scrollState: ScrollState) {
                     )
                 }
             }
+        }
+        
+        // Sleep Timer Section
+        Spacer(modifier = Modifier.height(32.dp))
+        Text("Sleep Timer", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        var showTimerDialog by remember { mutableStateOf(false) }
+        val timerOptions = listOf(15, 30, 45, 60, 90, 120)
+        
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .clickable { showTimerDialog = true }
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Rounded.Timer, null)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Sleep Timer", style = MaterialTheme.typography.bodyLarge)
+                        if (AudioEngine.sleepTimerEndTime != null) {
+                            Text(
+                                "${AudioEngine.sleepTimerMinutesLeft} min remaining",
+                                style = MaterialTheme.typography.bodySmall, 
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            Text("Stop playback after set time", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                        }
+                    }
+                    if (AudioEngine.sleepTimerEndTime != null) {
+                        TextButton(onClick = { AudioEngine.cancelSleepTimer() }) {
+                            Text("Cancel", color = MaterialTheme.colorScheme.error)
+                        }
+                    } else {
+                        Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.secondary)
+                    }
+                }
+            }
+        }
+        
+        // Sleep Timer Dialog
+        if (showTimerDialog) {
+            var showCustomInput by remember { mutableStateOf(false) }
+            var customInput by remember { mutableStateOf("") }
+
+            AlertDialog(
+                onDismissRequest = { showTimerDialog = false },
+                title = { Text(if (showCustomInput) "Set Custom Timer" else "Set Sleep Timer") },
+                text = {
+                    Column {
+                        if (showCustomInput) {
+                            OutlinedTextField(
+                                value = customInput,
+                                onValueChange = { if (it.all { char -> char.isDigit() }) customInput = it },
+                                label = { Text("Minutes") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        } else {
+                            timerOptions.forEach { minutes ->
+                                Surface(
+                                    onClick = {
+                                        AudioEngine.setSleepTimer(minutes)
+                                        showTimerDialog = false
+                                        Toast.makeText(context, "Sleep timer set for $minutes minutes", Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = Color.Transparent,
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Rounded.Timer, null, modifier = Modifier.size(20.dp))
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Text(
+                                            if (minutes < 60) "$minutes minutes" 
+                                            else if (minutes == 60) "1 hour"
+                                            else "${minutes / 60}h ${minutes % 60}m",
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // allow user selected input
+                            Surface(
+                                onClick = { showCustomInput = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                color = Color.Transparent,
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Rounded.Edit, null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text("Custom...", style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Row {
+                        if (showCustomInput) {
+                            TextButton(onClick = { showCustomInput = false }) {
+                                Text("Back")
+                            }
+                            TextButton(
+                                onClick = {
+                                    val minutes = customInput.toIntOrNull()
+                                    if (minutes != null && minutes > 0) {
+                                        AudioEngine.setSleepTimer(minutes)
+                                        showTimerDialog = false
+                                        Toast.makeText(context, "Sleep timer set for $minutes minutes", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "Please enter a valid number", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            ) {
+                                Text("Set")
+                            }
+                        } else {
+                            TextButton(onClick = { showTimerDialog = false }) {
+                                Text("Cancel")
+                            }
+                        }
+                    }
+                }
+            )
         }
     }
 }
