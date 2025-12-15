@@ -46,6 +46,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -828,8 +831,18 @@ fun DashboardScreen(
     }
 
     LazyColumn(state = state, contentPadding = PaddingValues(top = 40.dp, bottom = 200.dp, start = 20.dp, end = 20.dp)) {
+
         item {
-            Text("Jump back in", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+            Text(
+                text = buildAnnotatedString {
+                    append("Jump ")
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                        append("back in")
+                    }
+                },
+                style = MaterialTheme.typography.headlineLarge, 
+                fontWeight = FontWeight.ExtraBold
+            )
             Spacer(modifier = Modifier.height(24.dp))
         }
 
