@@ -1278,9 +1278,9 @@ fun SettingsScreen(onNavigateRecap: () -> Unit, scrollState: ScrollState) {
     if (showAbout) {
         AlertDialog(
             onDismissRequest = { showAbout = false },
-            title = { Text("About Artic") },
-            text = { Text("Artic Music Player\nVersion 1.0\n\nA modern, material you music experience.") },
-            confirmButton = { TextButton(onClick = { showAbout = false }) { Text("Close") } }
+            title = { Text(stringResource(R.string.settings_about)) },
+            text = { Text(stringResource(R.string.settings_about_dialog)) },
+            confirmButton = { TextButton(onClick = { showAbout = false }) { Text(stringResource(R.string.dialog_close)) } }
         )
     }
 

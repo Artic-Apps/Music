@@ -38,6 +38,7 @@
     <string name="edit_album_new_name">New Name</string>
     <string name="edit_album_save">Save</string>
     <string name="edit_album_cancel">Cancel</string>
+    <string name="dialog_close">Close</string>
     <string name="edit_album_renamed">Album renamed to: %s</string>
     
     <!-- Search -->
@@ -50,7 +51,8 @@
     <string name="settings_your_stats_desc">Analyze your listening habits</string>
     <string name="settings_library">Library</string>
     <string name="settings_about">About</string>
-    <string name="settings_about_desc">Artic Music v1.0</string>
+    <string name="settings_about_desc">Artic Music v2.0</string>
+    <string name="settings_about_dialog">Artic Music Player\nVersion 2.0\n\nA 100% offline, modern, ad-free and material you design inspired experience and above all FOSS.</string>
     
     <!-- Stats/Recap -->
     <string name="stats_title">Your Stats</string>
