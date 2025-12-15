@@ -70,6 +70,9 @@ dependencies {
     // Haze
     implementation("dev.chrisbanes.haze:haze:0.7.3")
     implementation("dev.chrisbanes.haze:haze-materials:0.7.3")
+    
+    // Reorderable - Drag and drop for LazyColumn
+    implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

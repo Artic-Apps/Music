@@ -101,6 +101,7 @@ import dev.chrisbanes.haze.materials.HazeMaterials
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
+import org.burnoutcrew.reorderable.*
 
 // DATA MODELS
 
@@ -143,6 +144,7 @@ object AudioEngine {
     var currentPosition by mutableStateOf(0L)
     var duration by mutableStateOf(0L)
     var songQueue = mutableStateListOf<Song>()
+    var allSongsLibrary = mutableListOf<Song>() // For random suggestions
     var playbackSpeed by mutableStateOf(1.0f)
     var onStateChanged: ((Boolean) -> Unit)? = null
 
@@ -209,6 +211,15 @@ object AudioEngine {
         if (idx != -1 && idx < songQueue.size - 1) {
             play(context, songQueue[idx + 1])
         } else {
+            // Queue ended - check if auto-suggest is enabled
+            val dataManager = DataManager(context)
+            if (dataManager.isAutoSuggestEnabled() && allSongsLibrary.isNotEmpty()) {
+                // Pick a truly random song from entire library
+                val randomSong = allSongsLibrary.random()
+                songQueue.add(randomSong)
+                play(context, randomSong)
+                return
+            }
             isPlaying = false
             startService(context, "PAUSE")
         }
@@ -255,9 +266,23 @@ object AudioEngine {
     fun getUpcomingQueue(): List<Song> {
         val idx = songQueue.indexOf(currentSong)
         return if (idx != -1 && idx < songQueue.size - 1) {
-            songQueue.subList(idx + 1, songQueue.size)
+            songQueue.subList(idx + 1, songQueue.size).toList()
         } else {
             emptyList()
+        }
+    }
+    
+    fun shuffleUpcoming() {
+        val idx = songQueue.indexOf(currentSong)
+        if (idx != -1 && idx < songQueue.size - 1) {
+            // Get songs before current (including current)
+            val beforeCurrent = songQueue.take(idx + 1)
+            // Get and shuffle upcoming songs
+            val upcoming = songQueue.drop(idx + 1).shuffled()
+            // Rebuild the queue
+            songQueue.clear()
+            songQueue.addAll(beforeCurrent)
+            songQueue.addAll(upcoming)
         }
     }
 
@@ -409,6 +434,9 @@ fun MainContent() {
             }.sortedByDescending { it.songCount }
             AudioEngine.songQueue.clear()
             AudioEngine.songQueue.addAll(allSongs)
+            // Store all songs for random suggestions
+            AudioEngine.allSongsLibrary.clear()
+            AudioEngine.allSongsLibrary.addAll(allSongs)
         }
     }
     
@@ -834,9 +862,19 @@ fun DashboardScreen(
         item {
             Text("Quick Access", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(16.dp))
+            
+            // Store shuffled songs to show consistent previews
+            val quickAccessSongs = remember(songs) { songs.shuffled().take(5) }
+            
             LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                items(songs.shuffled().take(5)) { song ->
-                    Column(modifier = Modifier.width(140.dp).clickable { AudioEngine.play(context, song) }) {
+                items(quickAccessSongs) { song ->
+                    Column(modifier = Modifier.width(140.dp).clickable { 
+                        // Create a random queue with the clicked song first
+                        val randomQueue = songs.shuffled().toMutableList()
+                        randomQueue.remove(song)
+                        randomQueue.add(0, song)
+                        AudioEngine.play(context, song, randomQueue)
+                    }) {
                         Surface(shape = RoundedCornerShape(20.dp), modifier = Modifier.size(140.dp), shadowElevation = 4.dp) {
                             AsyncImage(model = song.albumArtUri, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
                         }
@@ -854,7 +892,12 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
         items(songs.take(10)) { song ->
-            UniqueSongRow(song) { AudioEngine.play(context, song) }
+            UniqueSongRow(song) { 
+                val randomQueue = songs.shuffled().toMutableList()
+                randomQueue.remove(song)
+                randomQueue.add(0, song)
+                AudioEngine.play(context, song, randomQueue)
+            }
             Spacer(modifier = Modifier.height(12.dp))
         }
     }
@@ -1162,6 +1205,41 @@ fun SettingsScreen(onNavigateRecap: () -> Unit, scrollState: ScrollState) {
                     Icon(Icons.Rounded.Info, null)
                     Spacer(modifier = Modifier.width(16.dp))
                     Text("About Artic", style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
+        
+        // Playback Settings Section
+        Spacer(modifier = Modifier.height(32.dp))
+        Text("Playback", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        val dataManager = remember { DataManager(context) }
+        var autoSuggestEnabled by remember { mutableStateOf(dataManager.isAutoSuggestEnabled()) }
+        
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Rounded.AutoAwesome, null)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Auto-Suggest Songs", style = MaterialTheme.typography.bodyLarge)
+                        Text("Play random songs when queue ends", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                    }
+                    Switch(
+                        checked = autoSuggestEnabled,
+                        onCheckedChange = { 
+                            autoSuggestEnabled = it
+                            dataManager.setAutoSuggestEnabled(it)
+                        }
+                    )
                 }
             }
         }
@@ -1584,16 +1662,7 @@ fun ImmersivePlayerScreen(song: Song, onClose: () -> Unit, onPlayPause: () -> Un
                         Icon(Icons.Rounded.ArrowBack, null, tint = Color.White)
                     }
                     Text(stringResource(R.string.player_up_next), style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
-                    TextButton(onClick = {
-                        // Shuffle the remaining queue
-                        val idx = AudioEngine.songQueue.indexOf(AudioEngine.currentSong)
-                        if (idx != -1 && idx < AudioEngine.songQueue.size - 1) {
-                            val upcoming = AudioEngine.songQueue.subList(idx + 1, AudioEngine.songQueue.size).shuffled()
-                            for (i in upcoming.indices) {
-                                AudioEngine.songQueue[idx + 1 + i] = upcoming[i]
-                            }
-                        }
-                    }) {
+                    TextButton(onClick = { AudioEngine.shuffleUpcoming() }) {
                         Icon(Icons.Rounded.Shuffle, null, tint = Color.White)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(stringResource(R.string.player_shuffle), color = Color.White)
@@ -1638,36 +1707,70 @@ fun ImmersivePlayerScreen(song: Song, onClose: () -> Unit, onPlayPause: () -> Un
                         Text("No more songs in queue", color = Color.White.copy(alpha = 0.5f))
                     }
                 } else {
+                    // Get the current song index to calculate actual queue positions
+                    val currentSongIdx = AudioEngine.songQueue.indexOf(AudioEngine.currentSong)
+                    
+                    val reorderState = rememberReorderableLazyListState(
+                        onMove = { from, to ->
+                            // Convert from upcoming list index to actual queue index
+                            val fromActual = currentSongIdx + 1 + from.index
+                            val toActual = currentSongIdx + 1 + to.index
+                            AudioEngine.moveInQueue(fromActual, toActual)
+                        }
+                    )
+                    
                     LazyColumn(
-                        modifier = Modifier.weight(1f),
+                        state = reorderState.listState,
+                        modifier = Modifier
+                            .weight(1f)
+                            .reorderable(reorderState),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                     ) {
-                        items(upcomingQueue.size) { index ->
+                        items(upcomingQueue.size, key = { upcomingQueue[it].id }) { index ->
                             val queueSong = upcomingQueue[index]
-                            Surface(
-                                onClick = { AudioEngine.play(context, queueSong) },
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color.White.copy(alpha = 0.08f)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                            
+                            ReorderableItem(reorderState, key = queueSong.id) { isDragging ->
+                                val elevation = animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
+                                
+                                Surface(
+                                    onClick = { AudioEngine.play(context, queueSong) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
+                                        .shadow(elevation.value, RoundedCornerShape(12.dp)),
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (isDragging) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.08f)
                                 ) {
-                                    Text("${index + 1}", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.5f), modifier = Modifier.width(24.dp))
-                                    AsyncImage(
-                                        model = queueSong.albumArtUri,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(44.dp).clip(RoundedCornerShape(8.dp)),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(queueSong.title, style = MaterialTheme.typography.bodyMedium, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text(queueSong.artist, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f), maxLines = 1)
-                                    }
-                                    IconButton(onClick = { AudioEngine.removeFromQueue(queueSong) }) {
-                                        Icon(Icons.Rounded.Close, null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
+                                    Row(
+                                        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Drag handle
+                                        Icon(
+                                            Icons.Rounded.DragHandle,
+                                            contentDescription = "Drag to reorder",
+                                            tint = Color.White.copy(alpha = 0.5f),
+                                            modifier = Modifier
+                                                .detectReorderAfterLongPress(reorderState)
+                                                .padding(8.dp)
+                                                .size(20.dp)
+                                        )
+                                        
+                                        Text("${index + 1}", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.5f), modifier = Modifier.width(24.dp))
+                                        AsyncImage(
+                                            model = queueSong.albumArtUri,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(44.dp).clip(RoundedCornerShape(8.dp)),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(queueSong.title, style = MaterialTheme.typography.bodyMedium, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text(queueSong.artist, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f), maxLines = 1)
+                                        }
+                                        IconButton(onClick = { AudioEngine.removeFromQueue(queueSong) }) {
+                                            Icon(Icons.Rounded.Close, null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
+                                        }
                                     }
                                 }
                             }
@@ -1731,13 +1834,7 @@ fun ImmersivePlayerScreen(song: Song, onClose: () -> Unit, onPlayPause: () -> Un
                                 },
                                 onClick = { 
                                     showMenu = false
-                                    val idx = AudioEngine.songQueue.indexOf(AudioEngine.currentSong)
-                                    if (idx != -1 && idx < AudioEngine.songQueue.size - 1) {
-                                        val upcoming = AudioEngine.songQueue.subList(idx + 1, AudioEngine.songQueue.size).shuffled()
-                                        for (i in upcoming.indices) {
-                                            AudioEngine.songQueue[idx + 1 + i] = upcoming[i]
-                                        }
-                                    }
+                                    AudioEngine.shuffleUpcoming()
                                 }
                             )
                         }
@@ -2084,6 +2181,15 @@ class DataManager(context: Context) {
             }
         }
         return renames
+    }
+    
+    // Auto-suggest setting - whether to suggest songs from other albums after queue ends
+    fun setAutoSuggestEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("auto_suggest_enabled", enabled).apply()
+    }
+    
+    fun isAutoSuggestEnabled(): Boolean {
+        return prefs.getBoolean("auto_suggest_enabled", true) // Default: enabled
     }
 }
 
