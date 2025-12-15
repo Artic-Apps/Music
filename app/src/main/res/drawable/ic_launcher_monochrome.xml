@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Monochrome Music Note for Android 13+ themed icons -->
+    
+    <!-- Music note head (circle) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M38,68 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0" />
+    
+    <!-- Music note stem -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M55,68 L55,32 L58,32 L58,68 Z" />
+    
+    <!-- Music note flag (curved) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M58,32 Q72,38 70,52 Q68,44 58,42 Z" />
+
+</vector>

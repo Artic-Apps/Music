@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors -->
+    <color name="player_background">#FF121212</color>
+    <color name="player_overlay_dark">#F2121212</color>
+    
+    <!-- Rank Badge Colors -->
+    <color name="rank_gold">#FFD700</color>
+    <color name="rank_silver">#C0C0C0</color>
+    <color name="rank_bronze">#CD7F32</color>
+    
+    <!-- UI Colors -->
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    <color name="dark_gray">#FF1A1A1A</color>
+    
+    <!-- Transparency variants -->
+    <color name="white_70">#B3FFFFFF</color>
+    <color name="white_60">#99FFFFFF</color>
+    <color name="white_50">#80FFFFFF</color>
+    <color name="white_30">#4DFFFFFF</color>
+    <color name="white_15">#26FFFFFF</color>
+    <color name="white_08">#14FFFFFF</color>
+    <color name="black_50">#80000000</color>
+</resources>

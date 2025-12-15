@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Artic Music</string>
+    
+    <!-- Navigation -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_library">Library</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_settings">Settings</string>
+    
+    <!-- Dashboard -->
+    <string name="dashboard_good_morning">Good morning</string>
+    <string name="dashboard_good_afternoon">Good afternoon</string>
+    <string name="dashboard_good_evening">Good evening</string>
+    <string name="dashboard_albums">Albums</string>
+    <string name="dashboard_artists">Artists</string>
+    <string name="dashboard_all_songs">All Songs</string>
+    <string name="dashboard_songs_count">%d songs</string>
+    
+    <!-- Player -->
+    <string name="player_now_playing">Now Playing</string>
+    <string name="player_up_next">Up Next</string>
+    <string name="player_no_queue">No more songs in queue</string>
+    <string name="player_shuffle">Shuffle</string>
+    <string name="player_shuffle_queue">Shuffle Queue</string>
+    <string name="player_speed">Speed: %sx</string>
+    <string name="player_playback_speed">Playback Speed</string>
+    <string name="player_speed_normal">Normal</string>
+    
+    <!-- Album/Artist Detail -->
+    <string name="detail_play_all">Play All</string>
+    <string name="detail_shuffle">Shuffle</string>
+    <string name="detail_songs_count">%d songs</string>
+    
+    <!-- Album Edit -->
+    <string name="edit_album_title">Edit Album Name</string>
+    <string name="edit_album_current">Current: %s</string>
+    <string name="edit_album_new_name">New Name</string>
+    <string name="edit_album_save">Save</string>
+    <string name="edit_album_cancel">Cancel</string>
+    <string name="edit_album_renamed">Album renamed to: %s</string>
+    
+    <!-- Search -->
+    <string name="search_hint">Search songs, artists…</string>
+    <string name="search_no_results">No songs found</string>
+    
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_your_stats">Your Recap</string>
+    <string name="settings_your_stats_desc">Analyze your listening habits</string>
+    <string name="settings_library">Library</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_desc">Artic Music v1.0</string>
+    
+    <!-- Stats/Recap -->
+    <string name="stats_title">Your Stats</string>
+    <string name="stats_subtitle">Your listening journey</string>
+    <string name="stats_listened">Listened</string>
+    <string name="stats_day_streak">Day streak</string>
+    <string name="stats_songs_played">Songs played</string>
+    <string name="stats_artists">Artists</string>
+    <string name="stats_most_played">Most Played Songs</string>
+    <string name="stats_top_artists">Top Artists</string>
+    <string name="stats_recently_played">Recently Played</string>
+    <string name="stats_plays">plays</string>
+    <string name="stats_hours_minutes">%dh %dm</string>
+    <string name="stats_minutes">%d min</string>
+    
+    <!-- Library -->
+    <string name="library_title">Library</string>
+    
+    <!-- Permissions -->
+    <string name="permission_title">Permission Required</string>
+    <string name="permission_message">Please grant storage permission to play music</string>
+    <string name="permission_grant">Grant Permission</string>
+    
+    <!-- Splash -->
+    <string name="splash_title">Artic Music</string>
+    
+    <!-- Common -->
+    <string name="close">Close</string>
+    <string name="back">Back</string>
+    <string name="none">None</string>
+</resources>

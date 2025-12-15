@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Padding/Margin -->
+    <dimen name="padding_tiny">4dp</dimen>
+    <dimen name="padding_small">8dp</dimen>
+    <dimen name="padding_medium">12dp</dimen>
+    <dimen name="padding_default">16dp</dimen>
+    <dimen name="padding_large">20dp</dimen>
+    <dimen name="padding_xlarge">24dp</dimen>
+    <dimen name="padding_xxlarge">32dp</dimen>
+    
+    <!-- Navigation Bar -->
+    <dimen name="nav_bar_height">72dp</dimen>
+    <dimen name="nav_bar_corner_radius">36dp</dimen>
+    <dimen name="nav_icon_size">24dp</dimen>
+    <dimen name="nav_indicator_size">48dp</dimen>
+    
+    <!-- Player -->
+    <dimen name="player_artwork_corner">24dp</dimen>
+    <dimen name="player_control_button_size">56dp</dimen>
+    <dimen name="player_play_button_size">72dp</dimen>
+    <dimen name="player_control_icon_size">40dp</dimen>
+    
+    <!-- Cards -->
+    <dimen name="card_corner_small">12dp</dimen>
+    <dimen name="card_corner_medium">16dp</dimen>
+    <dimen name="card_corner_large">24dp</dimen>
+    <dimen name="card_corner_xlarge">32dp</dimen>
+    
+    <!-- Album/Artist Cards -->
+    <dimen name="album_card_width">160dp</dimen>
+    <dimen name="album_card_height">200dp</dimen>
+    <dimen name="artist_card_size">70dp</dimen>
+    <dimen name="artist_card_width">90dp</dimen>
+    
+    <!-- Song Row -->
+    <dimen name="song_thumbnail_size">50dp</dimen>
+    <dimen name="song_thumbnail_corner">8dp</dimen>
+    
+    <!-- Mini Player -->
+    <dimen name="mini_player_height">64dp</dimen>
+    <dimen name="mini_player_corner">28dp</dimen>
+    <dimen name="mini_player_art_size">48dp</dimen>
+    
+    <!-- Stats Cards -->
+    <dimen name="stats_card_height">140dp</dimen>
+    <dimen name="recent_card_size">120dp</dimen>
+    
+    <!-- Icon Sizes -->
+    <dimen name="icon_tiny">16dp</dimen>
+    <dimen name="icon_small">20dp</dimen>
+    <dimen name="icon_default">24dp</dimen>
+    <dimen name="icon_medium">28dp</dimen>
+    <dimen name="icon_large">32dp</dimen>
+    <dimen name="icon_xlarge">40dp</dimen>
+</resources>
