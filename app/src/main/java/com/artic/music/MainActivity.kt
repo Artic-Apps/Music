@@ -180,6 +180,9 @@ object AudioEngine {
                     startService(context, "PLAY")
                 }
                 setOnCompletionListener { playNext(context) }
+                setOnSeekCompleteListener { mp ->
+                    this@AudioEngine.currentPosition = mp.currentPosition.toLong()
+                }
                 prepareAsync()
             }
             currentSong = song
@@ -217,8 +220,14 @@ object AudioEngine {
     }
 
     fun seekTo(pos: Long) {
-        mediaPlayer?.seekTo(pos.toInt())
         currentPosition = pos
+        mediaPlayer?.let { mp ->
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                mp.seekTo(pos, MediaPlayer.SEEK_CLOSEST)
+            } else {
+                mp.seekTo(pos.toInt())
+            }
+        }
     }
     
     fun updatePlaybackSpeed(speed: Float) {
@@ -273,6 +282,10 @@ class ArticMusicService : Service() {
                 override fun onPause() { AudioEngine.togglePlay(this@ArticMusicService) }
                 override fun onSkipToNext() { AudioEngine.playNext(this@ArticMusicService) }
                 override fun onSkipToPrevious() { AudioEngine.playPrev(this@ArticMusicService) }
+                override fun onSeekTo(pos: Long) { 
+                    AudioEngine.seekTo(pos)
+                    updateNotification(AudioEngine.isPlaying) 
+                }
             })
             isActive = true
         }
@@ -291,14 +304,28 @@ class ArticMusicService : Service() {
 
     private fun updateNotification(isPlaying: Boolean) {
         val song = AudioEngine.currentSong ?: return
+        
         val stateBuilder = PlaybackState.Builder()
-            .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_SKIP_TO_NEXT or PlaybackState.ACTION_SKIP_TO_PREVIOUS)
-            .setState(if (isPlaying) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED, AudioEngine.currentPosition, 1f)
+            .setActions(
+                PlaybackState.ACTION_PLAY or 
+                PlaybackState.ACTION_PAUSE or 
+                PlaybackState.ACTION_PLAY_PAUSE or
+                PlaybackState.ACTION_SKIP_TO_NEXT or 
+                PlaybackState.ACTION_SKIP_TO_PREVIOUS or
+                PlaybackState.ACTION_SEEK_TO
+            )
+            .setState(
+                if (isPlaying) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED, 
+                AudioEngine.currentPosition, 
+                if (isPlaying) AudioEngine.playbackSpeed else 0f,
+                android.os.SystemClock.elapsedRealtime()
+            )
         mediaSession.setPlaybackState(stateBuilder.build())
 
         val metadataBuilder = MediaMetadata.Builder()
             .putString(MediaMetadata.METADATA_KEY_TITLE, song.title)
             .putString(MediaMetadata.METADATA_KEY_ARTIST, song.artist)
+            .putString(MediaMetadata.METADATA_KEY_ALBUM, song.albumName)
             .putLong(MediaMetadata.METADATA_KEY_DURATION, song.duration)
         try {
             val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, song.albumArtUri)
@@ -307,7 +334,7 @@ class ArticMusicService : Service() {
         mediaSession.setMetadata(metadataBuilder.build())
 
         val notification = Notification.Builder(this, CHANNEL_ID)
-            .setStyle(Notification.MediaStyle().setMediaSession(mediaSession.sessionToken))
+            .setStyle(Notification.MediaStyle().setMediaSession(mediaSession.sessionToken).setShowActionsInCompactView(0, 1, 2))
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentTitle(song.title)
             .setContentText(song.artist)
@@ -316,6 +343,7 @@ class ArticMusicService : Service() {
             .addAction(Notification.Action(if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play, "Play/Pause", PendingIntent.getService(this, 1, Intent(this, ArticMusicService::class.java).apply { action = if(isPlaying) "PAUSE" else "RESUME" }, PendingIntent.FLAG_IMMUTABLE)))
             .addAction(Notification.Action(android.R.drawable.ic_media_next, "Next", PendingIntent.getService(this, 2, Intent(this, ArticMusicService::class.java).apply { action = "NEXT" }, PendingIntent.FLAG_IMMUTABLE)))
             .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .setOngoing(isPlaying)
             .build()
         startForeground(NOTIFICATION_ID, notification)
     }
