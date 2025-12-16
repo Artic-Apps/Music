@@ -74,6 +74,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
@@ -511,7 +512,7 @@ fun MainContent() {
             val hazeState = remember { HazeState() }
 
             Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-                // Content with haze source - this content will be blurred behind the nav bar
+                // Content area
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -649,25 +650,19 @@ fun ModernNavBar(
         modifier = modifier
             .fillMaxWidth()
             .height(barHeight)
+            .graphicsLayer {
+                shape = barShape
+                clip = true
+                compositingStrategy = CompositingStrategy.Offscreen
+            }
     ) {
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .shadow(
-                    elevation = 16.dp,
-                    shape = barShape,
-                    spotColor = Color.Black.copy(alpha = 0.15f),
-                    ambientColor = Color.Black.copy(alpha = 0.1f)
-                )
-        )
-        
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(barShape)
                 .hazeChild(
                     state = hazeState,
-                    style = HazeMaterials.ultraThin(surfaceColor.copy(alpha = 0.25f))
+                    shape = barShape,
+                    style = HazeMaterials.ultraThin(surfaceColor.copy(alpha = 0.3f))
                 )
         )
         
