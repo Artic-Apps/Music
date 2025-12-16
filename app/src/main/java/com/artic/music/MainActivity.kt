@@ -846,7 +846,7 @@ fun DashboardScreen(
             Text(stringResource(R.string.dashboard_albums), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(16.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                items(albums) { album ->
+                items(albums, key = { it.id }) { album ->
                     Column(
                         modifier = Modifier
                             .width(140.dp)
@@ -860,7 +860,18 @@ fun DashboardScreen(
                             )
                     ) {
                         Surface(shape = RoundedCornerShape(20.dp), modifier = Modifier.size(140.dp), shadowElevation = 4.dp) {
-                            AsyncImage(model = album.artUri, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
+                            AsyncImage(
+                                model = androidx.compose.ui.platform.LocalContext.current.let { 
+                                    coil.request.ImageRequest.Builder(it)
+                                        .data(album.artUri)
+                                        .size(400)
+                                        .crossfade(true)
+                                        .build()
+                                },
+                                contentDescription = null, 
+                                contentScale = ContentScale.Crop, 
+                                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
+                            )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(album.title, maxLines = 1, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
@@ -876,7 +887,7 @@ fun DashboardScreen(
             Text(stringResource(R.string.dashboard_artists), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(16.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                items(artists) { artist ->
+                items(artists, key = { it.name }) { artist ->
                     Column(
                         modifier = Modifier
                             .width(120.dp)
@@ -889,7 +900,13 @@ fun DashboardScreen(
                             shadowElevation = 4.dp
                         ) {
                             AsyncImage(
-                                model = artist.artUri,
+                                model = androidx.compose.ui.platform.LocalContext.current.let { 
+                                    coil.request.ImageRequest.Builder(it)
+                                        .data(artist.artUri)
+                                        .size(300)
+                                        .crossfade(true)
+                                        .build()
+                                },
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
@@ -913,7 +930,7 @@ fun DashboardScreen(
             val quickAccessSongs = remember(songs) { songs.shuffled().take(5) }
             
             LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                items(quickAccessSongs) { song ->
+                items(quickAccessSongs, key = { it.id }) { song ->
                     Column(modifier = Modifier.width(140.dp).clickable { 
                         // Create a random queue with the clicked song first
                         val randomQueue = songs.shuffled().toMutableList()
@@ -922,7 +939,18 @@ fun DashboardScreen(
                         AudioEngine.play(context, song, randomQueue)
                     }) {
                         Surface(shape = RoundedCornerShape(20.dp), modifier = Modifier.size(140.dp), shadowElevation = 4.dp) {
-                            AsyncImage(model = song.albumArtUri, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
+                            AsyncImage(
+                                model = androidx.compose.ui.platform.LocalContext.current.let { 
+                                    coil.request.ImageRequest.Builder(it)
+                                        .data(song.albumArtUri)
+                                        .size(400)
+                                        .crossfade(true)
+                                        .build()
+                                },
+                                contentDescription = null, 
+                                contentScale = ContentScale.Crop, 
+                                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
+                            )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(song.title, maxLines = 1, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
@@ -1225,7 +1253,7 @@ fun LibraryScreen(songs: List<Song>, state: LazyListState) {
             }
         }
         
-        items(sortedSongs) { song ->
+        items(sortedSongs, key = { it.id }) { song ->
             UniqueSongRow(song) { AudioEngine.play(context, song) }
             Spacer(modifier = Modifier.height(12.dp))
         }
@@ -1666,7 +1694,7 @@ fun RecapScreen(dataManager: DataManager, allSongs: List<Song>, onBack: () -> Un
                     modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 12.dp)
                 )
             }
-            items(topSongs) { (song, playCount) ->
+            items(topSongs, key = { it.first.id }) { (song, playCount) ->
                 Surface(
                     onClick = { AudioEngine.play(context, song, allSongs) },
                     modifier = Modifier
@@ -1705,7 +1733,13 @@ fun RecapScreen(dataManager: DataManager, allSongs: List<Song>, onBack: () -> Un
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         AsyncImage(
-                            model = song.albumArtUri,
+                            model = androidx.compose.ui.platform.LocalContext.current.let { 
+                                coil.request.ImageRequest.Builder(it)
+                                    .data(song.albumArtUri)
+                                    .size(144)
+                                    .crossfade(true)
+                                    .build()
+                            },
                             contentDescription = null,
                             modifier = Modifier
                                 .size(50.dp)
@@ -1743,7 +1777,7 @@ fun RecapScreen(dataManager: DataManager, allSongs: List<Song>, onBack: () -> Un
                     contentPadding = PaddingValues(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(allArtistStats) { (artistName, playCount) ->
+                    items(allArtistStats, key = { it.first }) { (artistName, playCount) ->
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
@@ -1759,7 +1793,13 @@ fun RecapScreen(dataManager: DataManager, allSongs: List<Song>, onBack: () -> Un
                                 shadowElevation = 4.dp
                             ) {
                                 AsyncImage(
-                                    model = getArtistArt(artistName),
+                                    model = androidx.compose.ui.platform.LocalContext.current.let { 
+                                        coil.request.ImageRequest.Builder(it)
+                                            .data(getArtistArt(artistName))
+                                            .size(300)
+                                            .crossfade(true)
+                                            .build()
+                                    },
                                     contentDescription = null,
                                     modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant),
                                     contentScale = ContentScale.Crop
@@ -1790,7 +1830,7 @@ fun RecapScreen(dataManager: DataManager, allSongs: List<Song>, onBack: () -> Un
                     contentPadding = PaddingValues(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(recentSongs) { song ->
+                    items(recentSongs, key = { it.id }) { song ->
                         Column(
                             modifier = Modifier
                                 .width(120.dp)
@@ -1802,7 +1842,13 @@ fun RecapScreen(dataManager: DataManager, allSongs: List<Song>, onBack: () -> Un
                                 shadowElevation = 4.dp
                             ) {
                                 AsyncImage(
-                                    model = song.albumArtUri,
+                                    model = androidx.compose.ui.platform.LocalContext.current.let { 
+                                        coil.request.ImageRequest.Builder(it)
+                                            .data(song.albumArtUri)
+                                            .size(400)
+                                            .crossfade(true)
+                                            .build()
+                                    },
                                     contentDescription = null,
                                     modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant),
                                     contentScale = ContentScale.Crop
@@ -1833,7 +1879,13 @@ fun FloatingMiniPlayer(song: Song, isPlaying: Boolean, onPlayPause: () -> Unit, 
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
             // Static Rounded Art
             AsyncImage(
-                model = song.albumArtUri,
+                model = androidx.compose.ui.platform.LocalContext.current.let { 
+                    coil.request.ImageRequest.Builder(it)
+                        .data(song.albumArtUri)
+                        .size(144)
+                        .crossfade(true)
+                        .build()
+                },
                 contentDescription = null,
                 modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface),
                 contentScale = ContentScale.Crop
@@ -2018,7 +2070,13 @@ fun ImmersivePlayerScreen(song: Song, onClose: () -> Unit, onPlayPause: () -> Un
                                         
                                         Text("${index + 1}", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.5f), modifier = Modifier.width(24.dp))
                                         AsyncImage(
-                                            model = queueSong.albumArtUri,
+                                            model = androidx.compose.ui.platform.LocalContext.current.let { 
+                                                coil.request.ImageRequest.Builder(it)
+                                                    .data(queueSong.albumArtUri)
+                                                    .size(144)
+                                                    .crossfade(true)
+                                                    .build()
+                                            },
                                             contentDescription = null,
                                             modifier = Modifier.size(44.dp).clip(RoundedCornerShape(8.dp)),
                                             contentScale = ContentScale.Crop
@@ -2251,7 +2309,13 @@ fun UniqueSongRow(song: Song, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = song.albumArtUri,
+                model = androidx.compose.ui.platform.LocalContext.current.let { 
+                    coil.request.ImageRequest.Builder(it)
+                        .data(song.albumArtUri)
+                        .size(144) // Request thumbnail size
+                        .crossfade(true)
+                        .build()
+                },
                 contentDescription = null,
                 modifier = Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
                 contentScale = ContentScale.Crop
