@@ -445,7 +445,7 @@ fun ArticApp() {
 
 // UI COMPONENTS
 
-enum class Screen { Splash, Permission, Home, Recap }
+enum class Screen { Splash, Permission, Home, Recap, History }
 enum class Tab { Dashboard, Library, Search, Settings }
 
 var currentTab by mutableStateOf(Tab.Dashboard)
@@ -520,8 +520,10 @@ fun MainContent() {
                 ) {
                     if (currentScreen == Screen.Recap) {
                         RecapScreen(dataManager, allSongs) { currentScreen = Screen.Home }
+                    } else if (currentScreen == Screen.History) {
+                        HistoryScreen(dataManager, allSongs) { currentScreen = Screen.Home }
                     } else {
-                        HomeContent(allSongs, allAlbums, allArtists, { currentScreen = Screen.Recap }, onAlbumRenamed)
+                        HomeContent(allSongs, allAlbums, allArtists, { currentScreen = Screen.Recap }, { currentScreen = Screen.History }, onAlbumRenamed)
                     }
 
                     // Mini Player (also part of content that gets blurred through nav bar)
@@ -575,6 +577,7 @@ fun HomeContent(
     albums: List<Album>,
     artists: List<Artist>,
     onNavigateRecap: () -> Unit,
+    onNavigateHistory: () -> Unit,
     onAlbumRenamed: (Album, String) -> Unit
 ) {
     val context = LocalContext.current
@@ -609,7 +612,7 @@ fun HomeContent(
             )
             Tab.Library -> LibraryScreen(songs, libraryState)
             Tab.Search -> SearchScreen(songs, searchState, searchQuery) { searchQuery = it }
-            Tab.Settings -> SettingsScreen(onNavigateRecap, settingsState)
+            Tab.Settings -> SettingsScreen(onNavigateRecap, onNavigateHistory, settingsState)
         }
         
         // Album Detail Overlay
@@ -1292,9 +1295,63 @@ fun SearchScreen(songs: List<Song>, state: LazyListState, query: String, onQuery
     }
 }
 
+// History
+@Composable
+fun HistoryScreen(dataManager: DataManager, allSongs: List<Song>, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val history = remember(allSongs) { dataManager.getHistory(allSongs) }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+                .padding(top = 24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = "Listening History",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        if (history.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No history yet", color = MaterialTheme.colorScheme.secondary)
+            }
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(history) { song ->
+                    UniqueSongRow(song) { AudioEngine.play(context, song) }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                item { Spacer(modifier = Modifier.height(120.dp)) }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onNavigateRecap: () -> Unit, scrollState: ScrollState) {
+fun SettingsScreen(onNavigateRecap: () -> Unit, onNavigateHistory: () -> Unit, scrollState: ScrollState) {
     val context = LocalContext.current
     var showAbout by remember { mutableStateOf(false) }
 
@@ -1346,6 +1403,12 @@ fun SettingsScreen(onNavigateRecap: () -> Unit, scrollState: ScrollState) {
                     Icon(Icons.Rounded.Refresh, null)
                     Spacer(modifier = Modifier.width(16.dp))
                     Text("Rescan Storage", style = MaterialTheme.typography.bodyLarge)
+                }
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha=0.5f))
+                Row(modifier = Modifier.clickable { onNavigateHistory() }.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.History, null)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Listening History", style = MaterialTheme.typography.bodyLarge)
                 }
                 Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha=0.5f))
                 Row(modifier = Modifier.clickable { showAbout = true }.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -2362,16 +2425,14 @@ class DataManager(context: Context) {
         val songCurrent = prefs.getInt("song_${song.id}", 0)
         prefs.edit().putInt("song_${song.id}", songCurrent + 1).apply()
         
-        // Track recently played (store last 20 song IDs)
+        // Track recently played (store last 1000 song IDs)
         val recentJson = prefs.getString("recent_plays", "[]") ?: "[]"
         val recentArray = JSONArray(recentJson)
-        // Remove if already exists to move to front
+        
         val newArray = JSONArray()
         newArray.put(song.id)
-        for (i in 0 until minOf(recentArray.length(), 19)) {
-            if (recentArray.getLong(i) != song.id) {
-                newArray.put(recentArray.getLong(i))
-            }
+        for (i in 0 until minOf(recentArray.length(), 999)) {
+            newArray.put(recentArray.getLong(i))
         }
         prefs.edit().putString("recent_plays", newArray.toString()).apply()
         
@@ -2474,6 +2535,19 @@ class DataManager(context: Context) {
         }
         jsonArray.put(newObj)
         prefs.edit().putString("playlists", jsonArray.toString()).apply()
+    }
+
+    fun getHistory(allSongs: List<Song>): List<Song> {
+        val recentJson = prefs.getString("recent_plays", "[]") ?: "[]"
+        val recentArray = JSONArray(recentJson)
+        val history = mutableListOf<Song>()
+        val songMap = allSongs.associateBy { it.id }
+        
+        for (i in 0 until recentArray.length()) {
+            val id = recentArray.getLong(i)
+            songMap[id]?.let { history.add(it) }
+        }
+        return history
     }
 
     fun getPlaylists(): List<Playlist> {
