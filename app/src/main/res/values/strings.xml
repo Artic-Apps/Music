@@ -67,6 +67,23 @@
     <string name="stats_plays">plays</string>
     <string name="stats_hours_minutes">%dh %dm</string>
     <string name="stats_minutes">%d min</string>
+    <string name="recap_your_recap">Your Recap</string>
+    <string name="recap_listening_time">Listening Time</string>
+    <string name="recap_total_plays">Total Plays</string>
+    <string name="recap_your_top_artist">Your #1 Artist</string>
+    <string name="recap_share">Share Recap</string>
+    <string name="recap_no_data">Start listening to see your stats!</string>
+    <string name="recap_plays_count">%d plays</string>
+    <string name="recap_hours">hours</string>
+    <string name="recap_minutes">minutes</string>
+    <string name="recap_of_music">of music listened</string>
+    <string name="recap_day_streak">day streak</string>
+    <string name="recap_total_plays_label">total plays</string>
+    <string name="recap_songs">songs</string>
+    <string name="recap_artists">artists</string>
+    <string name="recap_see_all">See All</string>
+    <string name="recap_show_less">Show Less</string>
+    <string name="recap_plays">plays</string>
     
     <!-- Library -->
     <string name="library_title">Library</string>

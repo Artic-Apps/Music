@@ -41,6 +41,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -1604,15 +1605,16 @@ fun RecapScreen(dataManager: DataManager, allSongs: List<Song>, onBack: () -> Un
     
     // Gather all stats
     val totalMs = dataManager.getTotalListeningTime()
-    val hours = totalMs / 3600000
-    val mins = (totalMs % 3600000) / 60000
+    val hours = (totalMs / 3600000).toInt()
+    val mins = ((totalMs % 3600000) / 60000).toInt()
     val streak = dataManager.getCurrentStreak()
     val topArtist = dataManager.getTopArtist()
     val allArtistStats = dataManager.getAllArtistStats().take(10)
-    val topSongIds = dataManager.getTopSongIds().take(5)
+    val topSongIds = dataManager.getTopSongIds().take(10)
     val recentIds = dataManager.getRecentlyPlayedIds().take(10)
     val uniqueSongs = dataManager.getUniqueSongsPlayed()
     val uniqueArtists = dataManager.getUniqueArtistsCount()
+    val totalPlays = dataManager.getTotalPlays()
     
     // Map song IDs to actual songs
     val topSongs = topSongIds.mapNotNull { (id, count) ->
@@ -1622,306 +1624,658 @@ fun RecapScreen(dataManager: DataManager, allSongs: List<Song>, onBack: () -> Un
     
     // Get artist art from songs
     fun getArtistArt(artistName: String) = allSongs.find { it.artist == artistName }?.albumArtUri
+    
+    var showAllSongs by remember { mutableStateOf(false) }
+    val displayedSongs = if (showAllSongs) topSongs else topSongs.take(5)
+    
+    // Share
+    fun shareRecap() {
+        val shareText = buildString {
+            appendLine("🎵 My Artic Music Recap 🎵")
+            appendLine()
+            appendLine("⏱️ Listening Time: ${hours}h ${mins}m")
+            appendLine("🔥 Day Streak: $streak days")
+            appendLine("🎶 Songs Played: $uniqueSongs")
+            appendLine("🎤 Artists: $uniqueArtists")
+            appendLine("▶️ Total Plays: $totalPlays")
+            if (topArtist.first != "None") {
+                appendLine()
+                appendLine("⭐ My #1 Artist: ${topArtist.first} (${topArtist.second} plays)")
+            }
+            if (topSongs.isNotEmpty()) {
+                appendLine()
+                appendLine("🏆 Top Songs:")
+                topSongs.take(3).forEachIndexed { idx, (song, count) ->
+                    val medal = when(idx) { 0 -> "🥇"; 1 -> "🥈"; else -> "🥉" }
+                    appendLine("$medal ${song.title} - $count plays")
+                }
+            }
+            appendLine()
+            appendLine("Tracked with Artic Music 🎧")
+        }
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, shareText)
+        }
+        context.startActivity(Intent.createChooser(intent, "Share Your Recap"))
+    }
 
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(bottom = 100.dp)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Header
-        item {
-            Column(modifier = Modifier.padding(20.dp).padding(top = 20.dp)) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Icon(Icons.Rounded.ArrowBack, null)
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-                Text("Your Stats", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
-                Text("Your listening journey", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.secondary)
-            }
-        }
-        
-        // Stats Cards Row
-        item {
-            Row(
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+                .padding(top = 24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onBack,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                // Listening Time Card
+                Icon(Icons.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = stringResource(R.string.recap_your_recap),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 120.dp)
+        ) {
+            // Listening Time Hero Card
+            item {
                 Card(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(140.dp),
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp).fillMaxSize(),
-                        verticalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier.padding(24.dp)
                     ) {
-                        Icon(Icons.Rounded.Timer, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                        Column {
-                            if (hours > 0) {
-                                Text("${hours}h ${mins}m", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            } else {
-                                Text("$mins min", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Text(
+                            text = stringResource(R.string.recap_listening_time),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = if (hours > 0) "$hours" else "$mins",
+                                style = MaterialTheme.typography.displayMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(if (hours > 0) R.string.recap_hours else R.string.recap_minutes),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+                            if (hours > 0 && mins > 0) {
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "${mins}m",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
                             }
-                            Text("Listened", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
+                        }
+                        Text(
+                            text = stringResource(R.string.recap_of_music),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+            
+            // Stats Grid (2x2)
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Day Streak Card
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Rounded.Whatshot,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    "$streak",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    stringResource(R.string.recap_day_streak),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Total Plays Card
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Rounded.PlayCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    "$totalPlays",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    stringResource(R.string.recap_total_plays_label),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
                 
-                // Streak Card
-                Card(
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(140.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp).fillMaxSize(),
-                        verticalArrangement = Arrangement.SpaceBetween
+                    // Songs Card
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     ) {
-                        Icon(Icons.Rounded.LocalFireDepartment, null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
-                        Column {
-                            Text("$streak", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
-                            Text("Day streak", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f))
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Rounded.MusicNote,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    "$uniqueSongs",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    stringResource(R.string.recap_songs),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
+                    
+                    // Artists Card
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Rounded.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    "$uniqueArtists",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    stringResource(R.string.recap_artists),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+            
+            // Top Artist Spotlight
+            if (topArtist.first != "None") {
+                item {
+                    Text(
+                        stringResource(R.string.recap_your_top_artist),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                        onClick = {
+                            // Play first song by top artist
+                            allSongs.find { it.artist == topArtist.first }?.let { song ->
+                                AudioEngine.play(context, song)
+                            }
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Artist image with gold border for #1
+                            Box(modifier = Modifier.size(80.dp)) {
+                                AsyncImage(
+                                    model = getArtistArt(topArtist.first),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape)
+                                        .border(3.dp, Color(0xFFFFD700), CircleShape), // Gold border
+                                    contentScale = ContentScale.Crop
+                                )
+                                // Gold #1 badge
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .size(26.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFFFD700)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "1",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black
+                                    )
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.width(16.dp))
+                            
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "#1",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                )
+                                Text(
+                                    topArtist.first,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    stringResource(R.string.recap_plays_count, topArtist.second),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                            
+                            // Play icon hint
+                            Icon(
+                                Icons.Rounded.PlayArrow,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f),
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
-        }
-        
-        // Quick Stats Row
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Surface(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
+            
+            // Top Songs Section
+            if (topSongs.isNotEmpty()) {
+                item {
                     Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.primary)
-                        Column {
-                            Text("$uniqueSongs", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text("Songs played", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                        Text(
+                            stringResource(R.string.stats_most_played),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (topSongs.size > 5) {
+                            TextButton(onClick = { showAllSongs = !showAllSongs }) {
+                                Text(
+                                    stringResource(if (showAllSongs) R.string.recap_show_less else R.string.recap_see_all),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                
+                itemsIndexed(displayedSongs) { index, (song, count) ->
+                    // Gold/Silver/Bronze colors for top 3
+                    val rankColor = when(index) {
+                        0 -> Color(0xFFFFD700) // Gold
+                        1 -> Color(0xFFC0C0C0) // Silver
+                        2 -> Color(0xFFCD7F32) // Bronze
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    }
+                    
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        onClick = { AudioEngine.play(context, song) }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Ranking badge with gold/silver/bronze
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(rankColor),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "${index + 1}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (index < 3) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.width(12.dp))
+                            
+                            // Album art
+                            AsyncImage(
+                                model = song.albumArtUri,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(RoundedCornerShape(10.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                            
+                            Spacer(modifier = Modifier.width(14.dp))
+                            
+                            // Song info
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    song.title,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    song.artist,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
+                                )
+                            }
+                            
+                            // Play count
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    "$count",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    stringResource(R.string.recap_plays),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
-                Surface(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                
+                item { Spacer(modifier = Modifier.height(24.dp)) }
+            }
+            
+            // Top Artists
+            if (allArtistStats.isNotEmpty()) {
+                item {
+                    Text(
+                        stringResource(R.string.stats_top_artists),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Icon(Icons.Rounded.Person, null, tint = MaterialTheme.colorScheme.primary)
-                        Column {
-                            Text("$uniqueArtists", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text("Artists", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                        itemsIndexed(allArtistStats) { index, (artistName, playCount) ->
+                            // Gold/Silver/Bronze colors for top 3
+                            val rankColor = when(index) {
+                                0 -> Color(0xFFFFD700) // Gold
+                                1 -> Color(0xFFC0C0C0) // Silver
+                                2 -> Color(0xFFCD7F32) // Bronze
+                                else -> Color.Transparent
+                            }
+                            
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .width(84.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        // Play first song by this artist
+                                        allSongs.find { it.artist == artistName }?.let { song ->
+                                            AudioEngine.play(context, song)
+                                        }
+                                    }
+                                    .padding(4.dp)
+                            ) {
+                                Box(modifier = Modifier.size(72.dp)) {
+                                    AsyncImage(
+                                        model = getArtistArt(artistName),
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape)
+                                            .border(
+                                                width = if (index < 3) 3.dp else 0.dp,
+                                                color = rankColor,
+                                                shape = CircleShape
+                                            ),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    
+                                    if (index < 3) {
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.BottomEnd)
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .background(rankColor),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                "${index + 1}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.Black
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    artistName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    stringResource(R.string.recap_plays_count, playCount),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
-        }
-        
-        // Top Songs Section
-        if (topSongs.isNotEmpty()) {
+            
+            // Recently Played
+            if (recentSongs.isNotEmpty()) {
+                item {
+                    Text(
+                        stringResource(R.string.stats_recently_played),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(recentSongs) { song ->
+                            Card(
+                                modifier = Modifier.width(130.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                ),
+                                onClick = { AudioEngine.play(context, song) }
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Card(
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.size(114.dp)
+                                    ) {
+                                        AsyncImage(
+                                            model = song.albumArtUri,
+                                            contentDescription = null,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        song.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        song.artist,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+            
+            // Share Button
             item {
-                Text(
-                    "Most Played Songs",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 12.dp)
-                )
-            }
-            items(topSongs, key = { it.first.id }) { (song, playCount) ->
-                Surface(
-                    onClick = { AudioEngine.play(context, song, allSongs) },
+                Button(
+                    onClick = { shareRecap() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp)
-                        .padding(bottom = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Rank badge
-                        val rank = topSongs.indexOfFirst { it.first.id == song.id } + 1
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    when (rank) {
-                                        1 -> Color(0xFFFFD700) // Gold
-                                        2 -> Color(0xFFC0C0C0) // Silver
-                                        3 -> Color(0xFFCD7F32) // Bronze
-                                        else -> MaterialTheme.colorScheme.surfaceVariant
-                                    }
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "$rank",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (rank <= 3) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        AsyncImage(
-                            model = androidx.compose.ui.platform.LocalContext.current.let { 
-                                coil.request.ImageRequest.Builder(it)
-                                    .data(song.albumArtUri)
-                                    .size(144)
-                                    .crossfade(true)
-                                    .build()
-                            },
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(song.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(song.artist, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary, maxLines = 1)
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("$playCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                            Text("plays", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-                        }
-                    }
-                }
-            }
-            item { Spacer(modifier = Modifier.height(16.dp)) }
-        }
-        
-        // Top Artists Section
-        if (allArtistStats.isNotEmpty()) {
-            item {
-                Text(
-                    "Top Artists",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 12.dp)
-                )
-            }
-            item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(allArtistStats, key = { it.first }) { (artistName, playCount) ->
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .width(90.dp)
-                                .clickable {
-                                    val artistSongs = allSongs.filter { it.artist == artistName }
-                                    if (artistSongs.isNotEmpty()) AudioEngine.play(context, artistSongs.first(), artistSongs)
-                                }
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                modifier = Modifier.size(70.dp),
-                                shadowElevation = 4.dp
-                            ) {
-                                AsyncImage(
-                                    model = androidx.compose.ui.platform.LocalContext.current.let { 
-                                        coil.request.ImageRequest.Builder(it)
-                                            .data(getArtistArt(artistName))
-                                            .size(300)
-                                            .crossfade(true)
-                                            .build()
-                                    },
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(artistName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-                            Text("$playCount plays", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-            }
-        }
-        
-        // Recently Played Section
-        if (recentSongs.isNotEmpty()) {
-            item {
-                Text(
-                    "Recently Played",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 12.dp)
-                )
-            }
-            item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(recentSongs, key = { it.id }) { song ->
-                        Column(
-                            modifier = Modifier
-                                .width(120.dp)
-                                .clickable { AudioEngine.play(context, song, allSongs) }
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                modifier = Modifier.size(120.dp),
-                                shadowElevation = 4.dp
-                            ) {
-                                AsyncImage(
-                                    model = androidx.compose.ui.platform.LocalContext.current.let { 
-                                        coil.request.ImageRequest.Builder(it)
-                                            .data(song.albumArtUri)
-                                            .size(400)
-                                            .crossfade(true)
-                                            .build()
-                                    },
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(song.title, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(song.artist, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, maxLines = 1)
-                        }
-                    }
+                    Icon(Icons.Rounded.Share, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.recap_share),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
         }
@@ -2589,6 +2943,25 @@ class DataManager(context: Context) {
     fun isAutoSuggestEnabled(): Boolean {
         return prefs.getBoolean("auto_suggest_enabled", true) // Default: enabled
     }
+    
+    // Get total plays across all songs
+    fun getTotalPlays(): Int {
+        val all = prefs.all
+        return all.keys
+            .filter { it.startsWith("song_") }
+            .sumOf { key -> all[key] as? Int ?: 0 }
+    }
+    
+    // Track and get best streak ever
+    fun updateBestStreak() {
+        val currentStreak = getCurrentStreak()
+        val bestStreak = prefs.getInt("best_streak", 0)
+        if (currentStreak > bestStreak) {
+            prefs.edit().putInt("best_streak", currentStreak).apply()
+        }
+    }
+    
+    fun getBestStreak(): Int = prefs.getInt("best_streak", 0)
 }
 
 object SongRepository {
