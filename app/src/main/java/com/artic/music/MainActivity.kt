@@ -402,8 +402,17 @@ class ArticMusicService : Service() {
         } catch (e: Exception) { }
         mediaSession.setMetadata(metadataBuilder.build())
 
+        val openAppIntent = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
         val notification = Notification.Builder(this, CHANNEL_ID)
             .setStyle(Notification.MediaStyle().setMediaSession(mediaSession.sessionToken).setShowActionsInCompactView(0, 1, 2))
+            .setContentIntent(openAppIntent)
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentTitle(song.title)
             .setContentText(song.artist)
