@@ -76,6 +76,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
@@ -2286,6 +2288,14 @@ fun RecapScreen(dataManager: DataManager, allSongs: List<Song>, onBack: () -> Un
 
 @Composable
 fun FloatingMiniPlayer(song: Song, isPlaying: Boolean, onPlayPause: () -> Unit, onClick: () -> Unit) {
+    val progress by animateFloatAsState(
+        targetValue = if (AudioEngine.duration > 0) AudioEngine.currentPosition.toFloat() / AudioEngine.duration.toFloat() else 0f,
+        animationSpec = tween(durationMillis = 300, easing = LinearEasing),
+        label = "progress"
+    )
+    val progressColor = MaterialTheme.colorScheme.primary
+    val trackColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.15f)
+
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(28.dp),
@@ -2294,20 +2304,55 @@ fun FloatingMiniPlayer(song: Song, isPlaying: Boolean, onPlayPause: () -> Unit, 
         modifier = Modifier.fillMaxWidth().height(72.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
-            // Static Rounded Art
-            AsyncImage(
-                model = androidx.compose.ui.platform.LocalContext.current.let { 
-                    coil.request.ImageRequest.Builder(it)
-                        .data(song.albumArtUri)
-                        .size(144)
-                        .crossfade(true)
-                        .build()
-                },
-                contentDescription = null,
-                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.width(16.dp))
+            // Album art with circular progress ring
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(52.dp)
+            ) {
+                // Circular progress ring
+                Canvas(modifier = Modifier.size(52.dp)) {
+                    val strokeWidth = 3.dp.toPx()
+                    val arcSize = size.width - strokeWidth
+                    val topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f)
+
+                    // Track (background ring)
+                    drawArc(
+                        color = trackColor,
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = Size(arcSize, arcSize),
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+
+                    // Progress arc
+                    drawArc(
+                        color = progressColor,
+                        startAngle = -90f,
+                        sweepAngle = progress * 360f,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = Size(arcSize, arcSize),
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+                }
+
+                // Album art (circular)
+                AsyncImage(
+                    model = androidx.compose.ui.platform.LocalContext.current.let {
+                        coil.request.ImageRequest.Builder(it)
+                            .data(song.albumArtUri)
+                            .size(144)
+                            .crossfade(true)
+                            .build()
+                    },
+                    contentDescription = null,
+                    modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(song.title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer, maxLines = 1)
                 Text(song.artist, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha=0.8f), maxLines = 1)
