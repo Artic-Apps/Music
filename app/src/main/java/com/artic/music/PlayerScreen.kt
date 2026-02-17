@@ -41,59 +41,33 @@ import org.burnoutcrew.reorderable.*
 
 @Composable
 fun FloatingMiniPlayer(song: Song, isPlaying: Boolean, onPlayPause: () -> Unit, onClick: () -> Unit) {
+    val context = LocalContext.current
+    fun formatTime(ms: Long): String {
+        val s = ms / 1000
+        return String.format("%d:%02d", s / 60, s % 60)
+    }
+
     val progress by animateFloatAsState(
         targetValue = if (AudioEngine.duration > 0) AudioEngine.currentPosition.toFloat() / AudioEngine.duration.toFloat() else 0f,
-        animationSpec = tween(durationMillis = 300, easing = LinearEasing),
+        animationSpec = tween(durationMillis = 500, easing = LinearEasing),
         label = "progress"
     )
-    val progressColor = MaterialTheme.colorScheme.primary
-    val trackColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.15f)
 
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        shadowElevation = 16.dp,
-        modifier = Modifier.fillMaxWidth().height(72.dp)
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 8.dp,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
-            // Album art with circular progress ring
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(52.dp)
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 10.dp, end = 4.dp, top = 10.dp, bottom = 8.dp)
             ) {
-                // Circular progress ring
-                Canvas(modifier = Modifier.size(52.dp)) {
-                    val strokeWidth = 3.dp.toPx()
-                    val arcSize = size.width - strokeWidth
-                    val topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f)
-
-                    // Track (background ring)
-                    drawArc(
-                        color = trackColor,
-                        startAngle = -90f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = Size(arcSize, arcSize),
-                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                    )
-
-                    // Progress arc
-                    drawArc(
-                        color = progressColor,
-                        startAngle = -90f,
-                        sweepAngle = progress * 360f,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = Size(arcSize, arcSize),
-                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                    )
-                }
-
-                // Album art (circular)
+                // Album art – clean rounded rectangle, no ring
                 AsyncImage(
-                    model = androidx.compose.ui.platform.LocalContext.current.let {
+                    model = LocalContext.current.let {
                         coil.request.ImageRequest.Builder(it)
                             .data(song.albumArtUri)
                             .size(144)
@@ -101,18 +75,97 @@ fun FloatingMiniPlayer(song: Song, isPlaying: Boolean, onPlayPause: () -> Unit, 
                             .build()
                     },
                     contentDescription = null,
-                    modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface),
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentScale = ContentScale.Crop
                 )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Song info + time
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        song.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            song.artist,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (AudioEngine.duration > 0) {
+                            Text(
+                                "  ·  ",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                            Text(
+                                "${formatTime(AudioEngine.currentPosition)} / ${formatTime(AudioEngine.duration)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                            )
+                        }
+                    }
+                }
+
+                // Previous track
+                IconButton(
+                    onClick = { AudioEngine.playPrev(context) },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.SkipPrevious,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                // Play/Pause
+                IconButton(onClick = onPlayPause, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                // Next track
+                IconButton(
+                    onClick = { AudioEngine.playNext(context) },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.SkipNext,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(song.title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer, maxLines = 1)
-                Text(song.artist, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha=0.8f), maxLines = 1)
-            }
-            IconButton(onClick = onPlayPause) {
-                Icon(if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-            }
+
+            // Linear progress bar – edge to edge at bottom
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                strokeCap = StrokeCap.Round,
+            )
         }
     }
 }
