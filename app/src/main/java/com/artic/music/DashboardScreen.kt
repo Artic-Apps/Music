@@ -634,7 +634,7 @@ fun PlaylistDetailScreen(
             ) {
                 Icon(Icons.Rounded.PlayArrow, null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Play All")
+                Text(stringResource(R.string.detail_play_all))
             }
             OutlinedButton(
                 onClick = {
@@ -649,7 +649,7 @@ fun PlaylistDetailScreen(
             ) {
                 Icon(Icons.Rounded.Shuffle, null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Shuffle")
+                Text(stringResource(R.string.detail_shuffle))
             }
         }
         
@@ -662,7 +662,7 @@ fun PlaylistDetailScreen(
             ) {
                 Icon(Icons.Rounded.Add, null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Add Songs")
+                Text(stringResource(R.string.playlist_add_songs))
             }
         }
 

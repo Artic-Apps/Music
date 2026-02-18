@@ -87,7 +87,37 @@
     
     <!-- Library -->
     <string name="library_title">Library</string>
+    <string name="library_tab_songs">Songs</string>
+    <string name="library_tab_playlists">Playlists</string>
+    <string name="library_create_playlist">Create Playlist</string>
+    <string name="library_create_playlist_hint">Enter playlist name</string>
+    <string name="library_create_playlist_confirm">Create</string>
+    <string name="library_create_new_playlist">Create New Playlist</string>
+    <string name="library_create_and_add_later">Create &amp; Add Later</string>
+    <string name="library_playlist_name_label">Playlist name</string>
+    <string name="library_rename_playlist">Rename Playlist</string>
+    <string name="library_rename">Rename</string>
+    <string name="library_delete_playlist">Delete Playlist</string>
+    <string name="library_delete_playlist_confirm">Are you sure you want to delete "%s"?</string>
+    <string name="library_delete">Delete</string>
+    <string name="library_stats_header">%d tracks · %d playlists</string>
+    <string name="library_sort_by">Sort by:</string>
+    <string name="library_sort_name">Name</string>
+    <string name="library_sort_artist">Artist</string>
+    <string name="library_sort_date">Date Added</string>
     
+    <!-- Playlist Actions -->
+    <string name="playlist_add_to">Add to Playlist</string>
+    <string name="playlist_add_songs">Add Songs</string>
+    <string name="playlist_add_songs_search">Search songs...</string>
+    <string name="playlist_add_songs_confirm">Add (%d)</string>
+    <string name="playlist_add_songs_empty">No songs found</string>
+    <string name="playlist_remove">Remove</string>
+    <string name="playlist_empty_add">No playlists yet. Create one!</string>
+    
+    <!-- Dashboard -->
+    <string name="dashboard_from_library">From Your Library</string>
+
     <!-- Permissions -->
     <string name="permission_title">Permission Required</string>
     <string name="permission_message">Please grant storage permission to play music</string>
@@ -100,4 +130,8 @@
     <string name="close">Close</string>
     <string name="back">Back</string>
     <string name="none">None</string>
+    <string name="cancel">Cancel</string>
+    <string name="done">Done</string>
+    <string name="save">Save</string>
+    <string name="ok">OK</string>
 </resources>

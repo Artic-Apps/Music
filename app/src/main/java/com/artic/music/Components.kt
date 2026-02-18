@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 
@@ -79,7 +80,7 @@ fun UniqueSongRow(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.PlaylistAdd, null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text("Add to Playlist")
+                            Text(stringResource(R.string.playlist_add_to))
                         }
                     },
                     onClick = {
@@ -136,12 +137,12 @@ fun AddToPlaylistDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add to Playlist") },
+        title = { Text(stringResource(R.string.playlist_add_to)) },
         text = {
             Column {
                 if (playlists.isEmpty() && !showCreateField) {
                     Text(
-                        "No playlists yet. Create one!",
+                        stringResource(R.string.playlist_empty_add),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -210,7 +211,7 @@ fun AddToPlaylistDialog(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
-                    ) { Text("Create & Add Later") }
+                    ) { Text(stringResource(R.string.library_create_and_add_later)) }
                 } else {
                     TextButton(
                         onClick = { showCreateField = true },
@@ -218,7 +219,7 @@ fun AddToPlaylistDialog(
                     ) {
                         Icon(Icons.Rounded.Add, null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Create New Playlist")
+                        Text(stringResource(R.string.library_create_new_playlist))
                     }
                 }
             }
@@ -248,14 +249,14 @@ fun SongSelectorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Songs") },
+        title = { Text(stringResource(R.string.playlist_add_songs)) },
         text = {
             Column(modifier = Modifier.height(400.dp)) {
                 // Search Field
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    label = { Text("Search songs...") },
+                    label = { Text(stringResource(R.string.playlist_add_songs_search)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     shape = RoundedCornerShape(12.dp)
@@ -263,7 +264,7 @@ fun SongSelectorDialog(
 
                 if (availableSongs.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No songs found", color = MaterialTheme.colorScheme.secondary)
+                        Text(stringResource(R.string.playlist_add_songs_empty), color = MaterialTheme.colorScheme.secondary)
                     }
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f)) {
@@ -313,11 +314,11 @@ fun SongSelectorDialog(
                 },
                 enabled = selectedIds.isNotEmpty()
             ) {
-                Text("Add (${selectedIds.size})")
+                Text(stringResource(R.string.playlist_add_songs_confirm, selectedIds.size))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

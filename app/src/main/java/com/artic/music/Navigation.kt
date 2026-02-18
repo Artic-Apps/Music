@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
@@ -393,6 +394,13 @@ fun ModernNavBar(
                     Tab.Search -> Icons.Rounded.Search
                     Tab.Settings -> Icons.Rounded.Settings
                 }
+                
+                val contentDesc = when(tab) {
+                    Tab.Dashboard -> stringResource(R.string.nav_dashboard)
+                    Tab.Library -> stringResource(R.string.nav_library)
+                    Tab.Search -> stringResource(R.string.nav_search)
+                    Tab.Settings -> stringResource(R.string.nav_settings)
+                }
 
                 val scale by animateFloatAsState(
                     targetValue = if (selected) 1.1f else 1f,
@@ -443,7 +451,7 @@ fun ModernNavBar(
 
                     Icon(
                         imageVector = icon,
-                        contentDescription = null,
+                        contentDescription = contentDesc,
                         tint = if (selected) activeColor else inactiveColor.copy(alpha = iconAlpha),
                         modifier = Modifier
                             .size(24.dp)

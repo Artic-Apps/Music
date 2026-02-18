@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -194,7 +195,7 @@ fun ImmersivePlayerScreen(
         return String.format("%d:%02d", m, sec)
     }
 
-    val baseColor = Color(0xFF121212)
+    val baseColor = colorResource(R.color.player_background)
     
     // Menu and queue state
     var showMenu by remember { mutableStateOf(false) }
@@ -405,7 +406,7 @@ fun ImmersivePlayerScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Rounded.Speed, null, modifier = Modifier.size(20.dp))
                                         Spacer(modifier = Modifier.width(12.dp))
-                                        Text("Speed: ${AudioEngine.playbackSpeed}x")
+                                        Text(stringResource(R.string.player_speed, AudioEngine.playbackSpeed.toString()))
                                     }
                                 },
                                 onClick = { showMenu = false; showSpeedPicker = true }
@@ -415,7 +416,7 @@ fun ImmersivePlayerScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Rounded.QueueMusic, null, modifier = Modifier.size(20.dp))
                                         Spacer(modifier = Modifier.width(12.dp))
-                                        Text("Up Next (${AudioEngine.getUpcomingQueue().size})")
+                                        Text(stringResource(R.string.player_up_next) + " (${AudioEngine.getUpcomingQueue().size})")
                                     }
                                 },
                                 onClick = { showMenu = false; showQueue = true }
@@ -425,7 +426,7 @@ fun ImmersivePlayerScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Rounded.Shuffle, null, modifier = Modifier.size(20.dp))
                                         Spacer(modifier = Modifier.width(12.dp))
-                                        Text("Shuffle Queue")
+                                        Text(stringResource(R.string.player_shuffle_queue))
                                     }
                                 },
                                 onClick = { 
@@ -439,7 +440,7 @@ fun ImmersivePlayerScreen(
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(Icons.Rounded.PlaylistAdd, null, modifier = Modifier.size(20.dp))
                                             Spacer(modifier = Modifier.width(12.dp))
-                                            Text("Add to Playlist")
+                                            Text(stringResource(R.string.playlist_add_to))
                                         }
                                     },
                                     onClick = {

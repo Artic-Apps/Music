@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 
@@ -40,7 +41,7 @@ fun LibraryScreen(
     onAddSongToPlaylist: (String, Long) -> Unit
 ) {
     val context = LocalContext.current
-    val tabs = listOf("Songs", "Playlists")
+    val tabs = listOf(stringResource(R.string.library_tab_songs), stringResource(R.string.library_tab_playlists))
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val coroutineScope = rememberCoroutineScope()
 
@@ -62,7 +63,7 @@ fun LibraryScreen(
         Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 40.dp)) {
             Text("Library", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
             Text(
-                "${songs.size} tracks · ${playlists.size} playlists",
+                stringResource(R.string.library_stats_header, songs.size, playlists.size),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.secondary
             )
@@ -117,12 +118,12 @@ fun LibraryScreen(
     if (showCreateDialog) {
         AlertDialog(
             onDismissRequest = { showCreateDialog = false; newPlaylistName = "" },
-            title = { Text("New Playlist") },
+            title = { Text(stringResource(R.string.library_create_new_playlist)) },
             text = {
                 OutlinedTextField(
                     value = newPlaylistName,
                     onValueChange = { newPlaylistName = it },
-                    label = { Text("Playlist name") },
+                    label = { Text(stringResource(R.string.library_create_playlist_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -134,24 +135,25 @@ fun LibraryScreen(
                         newPlaylistName = ""
                     }
                     showCreateDialog = false
-                }) { Text("Create") }
+                }) { Text(stringResource(R.string.library_create_playlist_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateDialog = false; newPlaylistName = "" }) { Text("Cancel") }
+                TextButton(onClick = { showCreateDialog = false; newPlaylistName = "" }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }
 
     // Rename Playlist Dialog
+    // Rename Playlist Dialog
     if (showRenameDialog && renamingPlaylist != null) {
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
-            title = { Text("Rename Playlist") },
+            title = { Text(stringResource(R.string.library_rename_playlist)) },
             text = {
                 OutlinedTextField(
                     value = renameText,
                     onValueChange = { renameText = it },
-                    label = { Text("New name") },
+                    label = { Text(stringResource(R.string.library_playlist_name_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -162,10 +164,10 @@ fun LibraryScreen(
                         onRenamePlaylist(renamingPlaylist!!.id, renameText.trim())
                     }
                     showRenameDialog = false
-                }) { Text("Rename") }
+                }) { Text(stringResource(R.string.library_rename)) }
             },
             dismissButton = {
-                TextButton(onClick = { showRenameDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showRenameDialog = false }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }
@@ -174,16 +176,16 @@ fun LibraryScreen(
     if (showDeleteDialog && deletingPlaylist != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Playlist") },
-            text = { Text("Delete \"${deletingPlaylist!!.name}\"? This can't be undone.") },
+            title = { Text(stringResource(R.string.library_delete_playlist)) },
+            text = { Text(stringResource(R.string.library_delete_playlist_confirm, deletingPlaylist!!.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     onDeletePlaylist(deletingPlaylist!!.id)
                     showDeleteDialog = false
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.library_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }
@@ -214,7 +216,7 @@ private fun SongsTab(songs: List<Song>, state: LazyListState, playlists: List<Pl
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Sort by:", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
+                    Text(stringResource(R.string.library_sort_by), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
                     Spacer(modifier = Modifier.width(8.dp))
 
                     var showSortMenu by remember { mutableStateOf(false) }
@@ -237,7 +239,11 @@ private fun SongsTab(songs: List<Song>, state: LazyListState, playlists: List<Pl
                             expanded = showSortMenu,
                             onDismissRequest = { showSortMenu = false }
                         ) {
-                            listOf("Name", "Artist", "Date Added").forEach { option ->
+                            listOf(
+                                stringResource(R.string.library_sort_name),
+                                stringResource(R.string.library_sort_artist),
+                                stringResource(R.string.library_sort_date)
+                            ).forEach { option ->
                                 DropdownMenuItem(
                                     text = { Text(option) },
                                     onClick = {
@@ -322,12 +328,12 @@ private fun PlaylistsTab(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text(
-                            "Create New Playlist",
+                            stringResource(R.string.library_create_new_playlist),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            "Start your collection",
+                            stringResource(R.string.library_create_playlist_hint), // Or "Start your collection" if different
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.secondary
                         )
@@ -421,7 +427,7 @@ private fun PlaylistsTab(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            "${playlistSongs.size} songs",
+                            stringResource(R.string.dashboard_songs_count, playlistSongs.size),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.secondary
                         )
@@ -446,7 +452,7 @@ private fun PlaylistsTab(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Rounded.Edit, null, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(10.dp))
-                                        Text("Rename")
+                                        Text(stringResource(R.string.library_rename))
                                     }
                                 },
                                 onClick = { showMenu = false; onRename(playlist) }
@@ -456,7 +462,7 @@ private fun PlaylistsTab(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Rounded.Delete, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                                         Spacer(modifier = Modifier.width(10.dp))
-                                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                                        Text(stringResource(R.string.library_delete), color = MaterialTheme.colorScheme.error)
                                     }
                                 },
                                 onClick = { showMenu = false; onDelete(playlist) }
