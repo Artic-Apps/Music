@@ -193,6 +193,9 @@ fun MainContent() {
         }
 
         if (showPlayer.value && AudioEngine.currentSong != null) {
+            BackHandler {
+                showPlayer.value = false
+            }
             Box(modifier = Modifier.fillMaxSize().zIndex(100f).background(MaterialTheme.colorScheme.background)) {
                 ImmersivePlayerScreen(
                     song = AudioEngine.currentSong!!,
