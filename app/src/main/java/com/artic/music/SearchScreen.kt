@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun SearchScreen(songs: List<Song>, state: LazyListState, query: String, onQueryChange: (String) -> Unit) {
+fun SearchScreen(songs: List<Song>, state: LazyListState, query: String, playlists: List<Playlist> = emptyList(), onAddToPlaylist: ((String, Long) -> Unit)? = null, onCreatePlaylist: ((String) -> Unit)? = null, onQueryChange: (String) -> Unit) {
     val context = LocalContext.current
     val filtered = songs.filter { it.title.contains(query, true) || it.artist.contains(query, true) }
 
@@ -43,7 +43,7 @@ fun SearchScreen(songs: List<Song>, state: LazyListState, query: String, onQuery
         Spacer(modifier = Modifier.height(24.dp))
         LazyColumn(state = state, contentPadding = PaddingValues(bottom = 200.dp)) {
             items(filtered) { song ->
-                UniqueSongRow(song) { AudioEngine.play(context, song) }
+                UniqueSongRow(song, playlists = playlists, onAddToPlaylist = onAddToPlaylist, onCreatePlaylist = onCreatePlaylist) { AudioEngine.play(context, song) }
                 Spacer(modifier = Modifier.height(12.dp))
             }
         }

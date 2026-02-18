@@ -147,9 +147,74 @@ class DataManager(context: Context) {
         val jsonArray = JSONArray(prefs.getString("playlists", "[]"))
         for (i in 0 until jsonArray.length()) {
             val obj = jsonArray.getJSONObject(i)
-            list.add(Playlist(obj.getString("id"), obj.getString("name"), emptyList()))
+            val songsArray = obj.optJSONArray("songs") ?: JSONArray()
+            val songIds = mutableListOf<Long>()
+            for (j in 0 until songsArray.length()) {
+                songIds.add(songsArray.getLong(j))
+            }
+            list.add(Playlist(obj.getString("id"), obj.getString("name"), songIds))
         }
         return list
+    }
+
+    fun addSongToPlaylist(playlistId: String, songId: Long) {
+        val jsonArray = JSONArray(prefs.getString("playlists", "[]"))
+        for (i in 0 until jsonArray.length()) {
+            val obj = jsonArray.getJSONObject(i)
+            if (obj.getString("id") == playlistId) {
+                val songs = obj.optJSONArray("songs") ?: JSONArray()
+                // Skip duplicates
+                var exists = false
+                for (j in 0 until songs.length()) {
+                    if (songs.getLong(j) == songId) { exists = true; break }
+                }
+                if (!exists) {
+                    songs.put(songId)
+                    obj.put("songs", songs)
+                }
+                break
+            }
+        }
+        prefs.edit().putString("playlists", jsonArray.toString()).apply()
+    }
+
+    fun removeSongFromPlaylist(playlistId: String, songId: Long) {
+        val jsonArray = JSONArray(prefs.getString("playlists", "[]"))
+        for (i in 0 until jsonArray.length()) {
+            val obj = jsonArray.getJSONObject(i)
+            if (obj.getString("id") == playlistId) {
+                val songs = obj.optJSONArray("songs") ?: JSONArray()
+                val newSongs = JSONArray()
+                for (j in 0 until songs.length()) {
+                    if (songs.getLong(j) != songId) newSongs.put(songs.getLong(j))
+                }
+                obj.put("songs", newSongs)
+                break
+            }
+        }
+        prefs.edit().putString("playlists", jsonArray.toString()).apply()
+    }
+
+    fun deletePlaylist(playlistId: String) {
+        val jsonArray = JSONArray(prefs.getString("playlists", "[]"))
+        val newArray = JSONArray()
+        for (i in 0 until jsonArray.length()) {
+            val obj = jsonArray.getJSONObject(i)
+            if (obj.getString("id") != playlistId) newArray.put(obj)
+        }
+        prefs.edit().putString("playlists", newArray.toString()).apply()
+    }
+
+    fun renamePlaylist(playlistId: String, newName: String) {
+        val jsonArray = JSONArray(prefs.getString("playlists", "[]"))
+        for (i in 0 until jsonArray.length()) {
+            val obj = jsonArray.getJSONObject(i)
+            if (obj.getString("id") == playlistId) {
+                obj.put("name", newName)
+                break
+            }
+        }
+        prefs.edit().putString("playlists", jsonArray.toString()).apply()
     }
     
     // Album rename - stores custom album names by album ID

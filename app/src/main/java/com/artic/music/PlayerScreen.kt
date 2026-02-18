@@ -174,7 +174,16 @@ fun FloatingMiniPlayer(song: Song, isPlaying: Boolean, onPlayPause: () -> Unit, 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ImmersivePlayerScreen(song: Song, onClose: () -> Unit, onPlayPause: () -> Unit, onNext: () -> Unit, onPrev: () -> Unit) {
+fun ImmersivePlayerScreen(
+    song: Song,
+    onClose: () -> Unit,
+    onPlayPause: () -> Unit,
+    onNext: () -> Unit,
+    onPrev: () -> Unit,
+    playlists: List<Playlist> = emptyList(),
+    onAddToPlaylist: ((String, Long) -> Unit)? = null,
+    onCreatePlaylist: ((String) -> Unit)? = null
+) {
     val context = LocalContext.current
     
     // Format duration helper
@@ -191,6 +200,7 @@ fun ImmersivePlayerScreen(song: Song, onClose: () -> Unit, onPlayPause: () -> Un
     var showMenu by remember { mutableStateOf(false) }
     var showQueue by remember { mutableStateOf(false) }
     var showSpeedPicker by remember { mutableStateOf(false) }
+    var showAddToPlaylistPlayer by remember { mutableStateOf(false) }
     
     val speedOptions = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
 
@@ -423,6 +433,21 @@ fun ImmersivePlayerScreen(song: Song, onClose: () -> Unit, onPlayPause: () -> Un
                                     AudioEngine.shuffleUpcoming()
                                 }
                             )
+                            if (onAddToPlaylist != null) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Rounded.PlaylistAdd, null, modifier = Modifier.size(20.dp))
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text("Add to Playlist")
+                                        }
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        showAddToPlaylistPlayer = true
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -558,6 +583,17 @@ fun ImmersivePlayerScreen(song: Song, onClose: () -> Unit, onPlayPause: () -> Un
             confirmButton = {
                 TextButton(onClick = { showSpeedPicker = false }) { Text("Close") }
             }
+        )
+    }
+
+    // Add to Playlist dialog from player
+    if (showAddToPlaylistPlayer && onAddToPlaylist != null) {
+        AddToPlaylistDialog(
+            song = song,
+            playlists = playlists,
+            onDismiss = { showAddToPlaylistPlayer = false },
+            onAddToPlaylist = onAddToPlaylist,
+            onCreatePlaylist = onCreatePlaylist ?: {}
         )
     }
 }

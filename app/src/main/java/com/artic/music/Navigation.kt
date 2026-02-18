@@ -57,6 +57,7 @@ fun MainContent() {
     var allSongs by remember { mutableStateOf<List<Song>>(emptyList()) }
     var allAlbums by remember { mutableStateOf<List<Album>>(emptyList()) }
     var allArtists by remember { mutableStateOf<List<Artist>>(emptyList()) }
+    var allPlaylists by remember { mutableStateOf<List<Playlist>>(emptyList()) }
 
     LaunchedEffect(currentScreen) {
         if (currentScreen == Screen.Home && allSongs.isEmpty()) {
@@ -76,16 +77,39 @@ fun MainContent() {
             // Store all songs for random suggestions
             AudioEngine.allSongsLibrary.clear()
             AudioEngine.allSongsLibrary.addAll(allSongs)
+            // Load playlists
+            allPlaylists = dataManager.getPlaylists()
         }
     }
     
     // Callback to handle album rename
     val onAlbumRenamed: (Album, String) -> Unit = { album, newName ->
         dataManager.saveAlbumRename(album.id, newName)
-        // Update the allAlbums list with the new name
         allAlbums = allAlbums.map { 
             if (it.id == album.id) album.copy(title = newName) else it 
         }
+    }
+
+    // Playlist callbacks
+    val onCreatePlaylist: (String) -> Unit = { name ->
+        dataManager.createPlaylist(name)
+        allPlaylists = dataManager.getPlaylists()
+    }
+    val onDeletePlaylist: (String) -> Unit = { id ->
+        dataManager.deletePlaylist(id)
+        allPlaylists = dataManager.getPlaylists()
+    }
+    val onRenamePlaylist: (String, String) -> Unit = { id, newName ->
+        dataManager.renamePlaylist(id, newName)
+        allPlaylists = dataManager.getPlaylists()
+    }
+    val onAddSongToPlaylist: (String, Long) -> Unit = { playlistId, songId ->
+        dataManager.addSongToPlaylist(playlistId, songId)
+        allPlaylists = dataManager.getPlaylists()
+    }
+    val onRemoveSongFromPlaylist: (String, Long) -> Unit = { playlistId, songId ->
+        dataManager.removeSongFromPlaylist(playlistId, songId)
+        allPlaylists = dataManager.getPlaylists()
     }
     LaunchedEffect(AudioEngine.isPlaying) {
         while(AudioEngine.isPlaying) {
@@ -121,7 +145,20 @@ fun MainContent() {
                     } else if (currentScreen == Screen.History) {
                         HistoryScreen(dataManager, allSongs) { currentScreen = Screen.Home }
                     } else {
-                        HomeContent(allSongs, allAlbums, allArtists, { currentScreen = Screen.Recap }, { currentScreen = Screen.History }, onAlbumRenamed)
+                        HomeContent(
+                            songs = allSongs,
+                            albums = allAlbums,
+                            artists = allArtists,
+                            playlists = allPlaylists,
+                            onNavigateRecap = { currentScreen = Screen.Recap },
+                            onNavigateHistory = { currentScreen = Screen.History },
+                            onAlbumRenamed = onAlbumRenamed,
+                            onCreatePlaylist = onCreatePlaylist,
+                            onDeletePlaylist = onDeletePlaylist,
+                            onRenamePlaylist = onRenamePlaylist,
+                            onAddSongToPlaylist = onAddSongToPlaylist,
+                            onRemoveSongFromPlaylist = onRemoveSongFromPlaylist
+                        )
                     }
 
                     // Mini Player (also part of content that gets blurred through nav bar)
@@ -162,7 +199,10 @@ fun MainContent() {
                     onClose = { showPlayer.value = false },
                     onPlayPause = { AudioEngine.togglePlay(context) },
                     onNext = { AudioEngine.playNext(context) },
-                    onPrev = { AudioEngine.playPrev(context) }
+                    onPrev = { AudioEngine.playPrev(context) },
+                    playlists = allPlaylists,
+                    onAddToPlaylist = onAddSongToPlaylist,
+                    onCreatePlaylist = onCreatePlaylist
                 )
             }
         }
@@ -174,9 +214,15 @@ fun HomeContent(
     songs: List<Song>,
     albums: List<Album>,
     artists: List<Artist>,
+    playlists: List<Playlist>,
     onNavigateRecap: () -> Unit,
     onNavigateHistory: () -> Unit,
-    onAlbumRenamed: (Album, String) -> Unit
+    onAlbumRenamed: (Album, String) -> Unit,
+    onCreatePlaylist: (String) -> Unit,
+    onDeletePlaylist: (String) -> Unit,
+    onRenamePlaylist: (String, String) -> Unit,
+    onAddSongToPlaylist: (String, Long) -> Unit,
+    onRemoveSongFromPlaylist: (String, Long) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -190,11 +236,20 @@ fun HomeContent(
     // Detail view states
     var selectedAlbum by remember { mutableStateOf<Album?>(null) }
     var selectedArtist by remember { mutableStateOf<Artist?>(null) }
+    var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
 
     // Handle back press for detail views
-    BackHandler(enabled = selectedAlbum != null || selectedArtist != null) {
+    BackHandler(enabled = selectedAlbum != null || selectedArtist != null || selectedPlaylist != null) {
         selectedAlbum = null
         selectedArtist = null
+        selectedPlaylist = null
+    }
+
+    // Keep selectedPlaylist in sync with updated playlists list
+    LaunchedEffect(playlists) {
+        selectedPlaylist?.let { sel ->
+            selectedPlaylist = playlists.find { it.id == sel.id }
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -206,10 +261,23 @@ fun HomeContent(
                 state = dashboardState,
                 onAlbumClick = { selectedAlbum = it },
                 onArtistClick = { selectedArtist = it },
-                onAlbumRenamed = onAlbumRenamed
+                onAlbumRenamed = onAlbumRenamed,
+                playlists = playlists,
+                onAddToPlaylist = onAddSongToPlaylist,
+                onCreatePlaylist = onCreatePlaylist
             )
-            Tab.Library -> LibraryScreen(songs, libraryState)
-            Tab.Search -> SearchScreen(songs, searchState, searchQuery) { searchQuery = it }
+            Tab.Library -> LibraryScreen(
+                songs = songs,
+                state = libraryState,
+                playlists = playlists,
+                allSongs = songs,
+                onCreatePlaylist = onCreatePlaylist,
+                onDeletePlaylist = onDeletePlaylist,
+                onRenamePlaylist = onRenamePlaylist,
+                onPlaylistClick = { selectedPlaylist = it },
+                onAddSongToPlaylist = onAddSongToPlaylist
+            )
+            Tab.Search -> SearchScreen(songs, searchState, searchQuery, playlists = playlists, onAddToPlaylist = onAddSongToPlaylist, onCreatePlaylist = onCreatePlaylist) { searchQuery = it }
             Tab.Settings -> SettingsScreen(onNavigateRecap, onNavigateHistory, settingsState)
         }
         
@@ -228,6 +296,17 @@ fun HomeContent(
                 artist = artist,
                 songs = songs.filter { it.artist == artist.name },
                 onBack = { selectedArtist = null }
+            )
+        }
+
+        // Playlist Detail Overlay
+        selectedPlaylist?.let { playlist ->
+            PlaylistDetailScreen(
+                playlist = playlist,
+                allSongs = songs,
+                onBack = { selectedPlaylist = null },
+                onRemoveSong = onRemoveSongFromPlaylist,
+                onAddToPlaylist = onAddSongToPlaylist
             )
         }
     }
