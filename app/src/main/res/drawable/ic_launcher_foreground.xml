@@ -2,33 +2,11 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    
-    <!-- Minimal Music Note Icon - Material You Style -->
-    <!-- Centered in the safe zone (66dp centered in 108dp) -->
-    
-    <!-- Music note head (circle) -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M38,68 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0" />
-    
-    <!-- Music note stem -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M55,68 L55,32 L58,32 L58,68 Z" />
-    
-    <!-- Music note flag (curved) -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M58,32 Q72,38 70,52 Q68,44 58,42 Z" />
-    
-    <!-- Decorative arc - adds modern flair -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillAlpha="0.3"
-        android:pathData="M62,58 Q78,48 74,28"
-        android:strokeWidth="3"
-        android:strokeColor="#FFFFFF" />
-
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group android:scaleX="0.5" android:scaleY="0.5" android:pivotX="12" android:pivotY="12">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M12,3v10.55c-0.59,-0.34 -1.27,-0.55 -2,-0.55c-2.21,0 -4,1.79 -4,4s1.79,4 4,4s4,-1.79 4,-4V7h4V3H12z"/>
+    </group>
 </vector>
